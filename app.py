@@ -1,24 +1,20 @@
 import requests
-import firebase_admin
-from firebase_admin import credentials, firestore
 import re
 import json
-from flask import Flask, render_template_string, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory
 import ephem
 import math
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 import swisseph as swe
-
+from skyfield.api import load
+from astropy.time import Time
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("hello.json")  
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+
 
 # Predefined data for country, state, place, and coordinates
 place_coordinates = {
@@ -223,28 +219,6 @@ place_coordinates = {
     },
 
 }
-
-# Function to save user data and astrology data to Firestore
-def save_to_firestore(name, dob, tob, lat, lon, tz, astrology_type, astrology_data, lucky_number, lucky_traits, destiny_number, destiny_traits):
-    try:
-        user_ref = db.collection("users_all_kundali").document(name)
-        user_data = {
-            "name": name,
-            "dob": dob,
-            "tob": tob,
-            "latitude": lat,
-            "longitude": lon,
-            "timezone": tz,
-            "lucky_number": lucky_number,
-            "destiny_number": destiny_number,
-            "lucky_traits": str(lucky_traits),
-            "destiny_traits": str(destiny_traits),
-            astrology_type: astrology_data
-        }
-        user_ref.set(user_data, merge=True)
-        return user_data  # Return the user data for later use
-    except Exception as e:
-        return f"Error saving to Firestore: {str(e)}"
 
 def serialize_datetime(obj):
     """Convert datetime objects to string format."""
@@ -2620,7 +2594,8 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
    
     # Calculate Sade Sati
     sade_sati_info = calculate_sade_sati(dob, tob, lat, lon)
-     # Calculate the current year
+    
+    # Calculate current year
     current_year = datetime.now().year
 
     # Extract the year of birth from the DOB
@@ -2634,14 +2609,18 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
 
     # Call the function with the required arguments
     yogini_dasha = generate_yogini_maha_dasha(start_year, end_year)
+    
     # Calculate Ascendant
     ascendant = calculate_ascendant(dob, tob, lat, lon)
+    
     # Maanglik Dosha
-    manglik_dosh = calculate_manglik_dosh(planet_positions)
-    #  dasha prediction
-    dasha_predictions=calculate_dasha_predictions(dob,tob,lat,lon)
+    manglik_dosh = calculate_manglik_dosh(planetary_positions)
+    
+    # Dasha prediction
+    dasha_predictions = calculate_dasha_predictions(dob, tob, lat, lon)
+    
     # Mangal-dosha Calculation
-    mangal_dosh_info = calculate_mangal_dosh(planetary_positions,dob)
+    mangal_dosh_info = calculate_mangal_dosh(planetary_positions, dob)
 
     # Prepare Nakshatra details
     nakshatra, nakshatra_index = calculate_nakshatra(ascendant)
@@ -2679,42 +2658,15 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
             "description": planet_description
         }
         horoscope_planet_details.append(planet_details)
-    # Fetch Dasha periods dynamically
-    dasha_periods = get_dasha_durations(nakshatra_index)
-   
-    # Plot the KP houses chart and Lagna chart
-    plot_kp_houses(planetary_positions, lagna)
-    
-    
-    # Plot the Ashtakavarga, Rashi, and Navamsa charts
-   
-    plot_lagna_chart(planetary_positions, lagna)
-    plot_rashi_chart(planetary_positions)
-    plot_ashtakavarga_chart(planet_positions)
-    # Calculate current Mahadasha details
-    current_mahadasha_full = calculate_current_mahadasha_full(dob, tob, lat, lon)
-    # Combine Dasha info into a single structure
-    dasha_order_info = calculate_dasha_order(dob, tob, lat, lon)
-    dasha_periods=get_dasha_durations(nakshatra_index)
-    planet=planet
-    # Combine Dasha info into a single structure
-    dasha_mahadasha_current = {
-        "Mahadasha": maha_dasha_info,
-        "Shookshamahadasha": calculate_shookshamahadasha(dob, tob, lat, lon),
-        "Antardasha": calculate_antardasha(dob, tob, lat, lon),
-        "Pranadasha": calculate_pranadasha(dob, tob, lat, lon),
-        "Paryantardasha": calculate_paryantardasha(datetime.strptime(dob, "%d/%m/%Y"), planet, dasha_periods.get(planet, 0)), 
-        "order_names": dasha_order_info["dasha_names"],  # Add order names
-        "order_of_dasha": dasha_order_info["dasha_orders"] 
-    }
 
-    # Prepare current Mahadasha full info separately
-    dasha_mahadasha_current_full = current_mahadasha_full
-   
-    # Save user data
-    user_data = save_to_firestore(
-        name, dob, tob, lat, lon, tz, 
-        "horoscope", {
+    # Prepare the final result
+    return {
+        "name": name,
+        "lat": lat,
+        "lon": lon,
+        "dob": dob,
+        "horoscope": {
+            "planetary_positions": planetary_positions,
             "horoscope_planet_details": horoscope_planet_details,
             "lagna": lagna,
             "lagna_rasi_number": lagna_rasi_number,
@@ -2723,11 +2675,9 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
             "destiny_number": destiny_number,
             "destiny_traits": destiny_traits,
             "panchang": panchang_info,
-            "dasha_current_mahadasha": dasha_mahadasha_current, 
-            "dasha_mahadasha_current_full": dasha_mahadasha_current_full,
-            "dasha-char-dasha-full":dasha_predictions,
-            "dasha-yogini-dasha-main":yogini_dasha,
-            "Mangal-dosh": mangal_dosh_info,  
+            "dasha_current_mahadasha": maha_dasha_info, 
+            "dasha-yogini-dasha-main": yogini_dasha,
+            "Mangal-dosh": mangal_dosh_info,
             "extended_horoscope_find-moon-sign": {
                 "moon_sign": moon_sign,
                 "prediction": moon_prediction
@@ -2738,55 +2688,16 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
             },
             "pitra_dosh": pitra_dosh_info,
             "sade_sati_info": sade_sati_info,
-            "papa-samaya": calculate_papa_samaya(planetary_positions),
-            "Maanglik-Dosh":manglik_dosh,
+            "Papa-samaya": calculate_papa_samaya(planetary_positions),
+            "Maanglik-Dosh": manglik_dosh,
             "extended-horoscope_friendships": extended_horoscope_friendship,
-            "extended_horoscope_kp_houses": extended_horoscope_kp_houses
-        },
-        lucky_number, lucky_traits, destiny_number, destiny_traits
-    )
-
-    if isinstance(user_data, str) and "Error" in user_data:
-        return user_data
-
-    save_to_json_file(user_data)
-
-    return {
-    "name": name,
-    "lat": lat,
-    "lon": lon,
-    "dob": dob,
-    "horoscope": {
-        "planetary_positions": planetary_positions,
-        "horoscope_planet_details": horoscope_planet_details,
-        "lagna": lagna,
-        "lagna_rasi_number": lagna_rasi_number,
-        "lucky_number": lucky_number,
-        "lucky_traits": lucky_traits,
-        "destiny_number": destiny_number,
-        "destiny_traits": destiny_traits,
-        "panchang": panchang_info,
-        "dasha_current_mahadasha": dasha_mahadasha_current, 
-        "dasha_mahadasha_current_full": dasha_mahadasha_current_full, 
-        "dasha-char-dasha-full": dasha_predictions,
-        "dasha-yogini-dasha-main": yogini_dasha,
-        "Mangal-dosh": mangal_dosh_info,  
-        "extended_horoscope_find-moon-sign": {
-            "moon_sign": moon_sign,
-            "prediction": moon_prediction
-        },
-        "extended_horoscope_find-sun-sign": {
-            "sun_sign": sun_sign,
-            "prediction": sun_prediction
-        },
-        "pitra_dosh": pitra_dosh_info,
-        "sade_sati_info": sade_sati_info,
-        "Papa-samaya": calculate_papa_samaya(planetary_positions),
-        "Maanglik-Dosh": manglik_dosh,
-        "extended-horoscope_friendships": extended_horoscope_friendship,
-        "extended_horoscope_kp_houses": extended_horoscope_kp_houses
+            "extended_horoscope_kp_houses": {
+                "houses": houses_data,
+                "planets": planets_data
+            }
+        }
     }
-}
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -2806,299 +2717,13 @@ def index():
         # Check Horoscope
         horoscope_result = check_horoscope(name, dob, tob, lat, lon, tz)
         
-        return render_template_string(render_template(), result=horoscope_result, place_coordinates=place_coordinates)
+        return render_template('index13.html', result=horoscope_result, place_coordinates=place_coordinates)
 
-    return render_template_string(render_template(), result=None, place_coordinates=place_coordinates)
-
-
+    return render_template('index13.html', result=None, place_coordinates=place_coordinates)
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
-
-def render_template():
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astrology Checker</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(to right, #ff7e5f, #feb47b); 
-            font-family: 'Arial', sans-serif;
-            margin: 20px;
-            transition: background 0.5s ease;
-        }
-        .form-section {
-            background-color: #ffffff;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            margin-bottom: 20px;
-            transition: transform 0.3s;
-        }
-        .form-section:hover {
-            transform: scale(1.02);
-        }
-        .report-section {
-            background-color: #ffffff;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            display: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        h1, h2 {
-            color: #343a40;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        label {
-            font-weight: bold;
-            color: #007bff;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            transition: background-color 0.3s;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #004085;
-        }
-        table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-        }
-        th, td {
-            text-align: center;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-            transition: background-color 0.3s;
-        }
-        th:hover {
-            background-color: #0056b3;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #d1ecf1;
-        }
-    </style>
-    <script>
-        // Place coordinates data
-        const placeCoordinates = {{ place_coordinates | tojson }};
-
-        function updateStates(country) {
-            const stateSelect = document.getElementById("state");
-            stateSelect.innerHTML = ""; // Clear previous options
-
-            if (placeCoordinates[country]) {
-                const states = Object.keys(placeCoordinates[country]);
-                states.forEach(state => {
-                    const option = document.createElement("option");
-                    option.value = state;
-                    option.textContent = state;
-                    stateSelect.appendChild(option);
-                });
-            }
-            updatePlaces(stateSelect.value); // Update places as well
-        }
-
-        function updatePlaces(state) {
-            const countrySelect = document.getElementById("country");
-            const placeSelect = document.getElementById("place");
-            placeSelect.innerHTML = ""; // Clear previous options
-
-            if (placeCoordinates[countrySelect.value] && placeCoordinates[countrySelect.value][state]) {
-                const places = Object.keys(placeCoordinates[countrySelect.value][state]);
-                places.forEach(place => {
-                    const option = document.createElement("option");
-                    option.value = place;
-                    option.textContent = place;
-                    placeSelect.appendChild(option);
-                });
-            }
-            updateLatLon(placeSelect.value); // Update latitude and longitude as well
-        }
-
-        function updateLatLon(place) {
-            const countrySelect = document.getElementById("country");
-            const stateSelect = document.getElementById("state");
-            const latInput = document.getElementById("lat");
-            const lonInput = document.getElementById("lon");
-
-            if (placeCoordinates[countrySelect.value] && placeCoordinates[countrySelect.value][stateSelect.value] && placeCoordinates[countrySelect.value][stateSelect.value][place]) {
-                const coordinates = placeCoordinates[countrySelect.value][stateSelect.value][place];
-                latInput.value = coordinates.lat;
-                lonInput.value = coordinates.lon;
-            }
-        }
-
-        document.getElementById('astrologyForm').onsubmit = function(event) {
-            event.preventDefault(); // Prevent form submission
-
-            const name = this.name.value;
-            const dob = this.dob.value;
-            const tob = this.tob.value;
-            const country = this.country.value;
-            const state = this.state.value;
-            const place = this.place.value;
-
-            fetch('/').then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            }).then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                const result = doc.querySelector('#resultSection');
-                if (result) {
-                    // Populate result section
-                    document.getElementById('reportSection').style.display = 'block';
-                }
-            }).catch(error => {
-                console.error("Error fetching data:", error);
-            });
-        };
-    </script>
-</head>
-<body>
-
-<div class="container">
-    <h1 class="text-center my-4">Astrology Checker</h1>
-    <form id="astrologyForm" method="POST" class="form-section">
-        <div class="form-group">
-            <label>Name:</label>
-            <input type="text" class="form-control" name="name" required>
-        </div>
-
-        <div class="form-group">
-            <label>Date of Birth (DD/MM/YYYY):</label>
-            <input type="text" class="form-control" name="dob" placeholder="21/04/2021" required>
-        </div>
-
-        <div class="form-group">
-            <label>Time of Birth (HH:MM):</label>
-            <input type="text" class="form-control" name="tob" placeholder="11:40" required>
-        </div>
-
-        <div class="form-group">
-            <label>Country:</label>
-            <select id="country" name="country" class="form-control" onchange="updateStates(this.value)">
-                <option value="">Select Country</option>
-                {% for country in place_coordinates.keys() %}
-                    <option value="{{ country }}">{{ country }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>State:</label>
-            <select id="state" name="state" class="form-control" onchange="updatePlaces(this.value)">
-                <option value="">Select State</option>
-                <!-- States will be populated based on selected country -->
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Place:</label>
-            <select id="place" name="place" class="form-control" onchange="updateLatLon(this.value)">
-                <option value="">Select Place</option>
-                <!-- Places will be populated based on selected state -->
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Latitude:</label>
-            <input type="number" id="lat" name="lat" class="form-control" step="any" readonly>
-        </div>
-
-        <div class="form-group">
-            <label>Longitude:</label>
-            <input type="number" id="lon" name="lon" class="form-control" step="any" readonly>
-        </div>
-
-        <div class="form-group">
-            <label>Timezone (e.g., 5.5 for India):</label>
-            <input type="number" name="tz" class="form-control" value="5.5" step="0.1">
-        </div>
-
-        <button type="submit" class="btn btn-primary">Check Astrology</button>
-    </form>
-
-    <div class="report-section" id="reportSection">
-        <h2>Astrology Report</h2>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Dosha</th>
-                    <th>Dasha</th>
-                    <th>Horoscope</th>
-                    <th>Planet Report</th>
-                    <th>Lucky Number</th>
-                    <th>Destiny Number</th>
-                </tr>
-            </thead>
-            <tbody id="resultsTableBody">
-                <!-- Results will be populated here -->
-            </tbody>
-        </table>
-
-        <h2>Panchang Details</h2>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Tithi</th>
-                    <th>Nakshatra</th>
-                    <th>Rasi</th>
-                    <th>Tatva</th>
-                    <th>Yoga</th>
-                    <th>Hora Lord</th>
-                </tr>
-            </thead>
-            <tbody id="panchangTableBody">
-                <!-- Panchang details will be populated here -->
-            </tbody>
-        </table>
-
-        <h2>Mangal Dosh Details</h2>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Mangal Dosh Present</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Percentage</th>
-                </tr>
-            </thead>
-            <tbody id="mangalDoshTableBody">
-                <!-- Mangal Dosh details will be populated here -->
-            </tbody>
-        </table>
-    </div>
-
-    {% if result %}
-        <h2>Result:</h2>
-        <div>{{ result | safe }}</div>
-    {% endif %}
-</div>
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
-'''
 
 if __name__ == '__main__':
     app.run(debug=True)
