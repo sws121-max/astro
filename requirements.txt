@@ -6,4 +6,4 @@ matplotlib
 skyfield
 astropy
 gunicorn
-!pip install pyswisseph
+pip install pyswisseph
