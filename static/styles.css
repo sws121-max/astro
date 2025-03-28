@@ -1,0 +1,127 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Change to flex-start to align items at the top */
+    height: 100vh;
+    margin: 0;
+    padding-top: 50px; /* Add padding to create space at the top */
+}
+
+.form-section {
+    background: rgba(255, 255, 255, 0.1); /* Use rgba for background */
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px; /* Adjust this margin to control space below the form */
+    transition: transform 0.3s;
+}
+
+.form-section:hover {
+    transform: scale(1.02);
+}
+
+label {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.smart-recharge-container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.recharge-title {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 2s ease-in-out;
+}
+
+.recharge-card {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recharge-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.recharge-icon img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1rem;
+    animation: bounce 2s infinite;
+}
+
+.recharge-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.recharge-input {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    transition: background 0.3s ease;
+}
+
+.recharge-input:focus {
+    background: rgba(255, 255, 255, 1);
+    outline: none;
+}
+
+.recharge-button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 5px;
+    background: #2575fc;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.recharge-button:hover {
+    background: #6a11cb;
+    transform: scale(1.05);
+}
+
+.report-section {
+    margin-top: 50px; /* Adjust this margin to control the space above the report section */
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    60% {
+        transform: translateY(-10px);
+    }
+}
