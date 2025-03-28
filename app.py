@@ -16,7 +16,7 @@ import swisseph as swe
 app = Flask(__name__)
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("myapplications/hello.json")  
+cred = credentials.Certificate("hello.json")  
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
