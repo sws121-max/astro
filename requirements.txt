@@ -1,8 +1,9 @@
-Flask==1.0.4
-firebase-admin==4.4.0
-ephem==4.2
-numpy==1.18.5
-matplotlib==3.2.2
-swisseph==0.0.0.dev1
-skyfield==1.0
-astropy==4.2
+Flask
+firebase-admin
+ephem
+numpy
+matplotlib
+swisseph
+skyfield
+astropy
+guvicorn
