@@ -1,4 +1,6 @@
 import requests
+import firebase_admin
+from firebase_admin import credentials, firestore
 import re
 import json
 from flask import Flask, render_template, request, send_from_directory
@@ -14,7 +16,10 @@ from astropy.time import Time
 # Initialize Flask app
 app = Flask(__name__)
 
-
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("C://Users/saura/OneDrive/Desktop/chat-astro/hello1.json")  
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # Predefined data for country, state, place, and coordinates
 place_coordinates = {
@@ -219,6 +224,7 @@ place_coordinates = {
     },
 
 }
+
 
 def serialize_datetime(obj):
     """Convert datetime objects to string format."""
@@ -577,7 +583,7 @@ def calculate_manglik_dosh(planet_positions):
         "dosha_manglik_dosh": {},
         "aspects": aspects,
         "factors": factors,
-        "bot_response": "",
+        "Result": "",
         "manglik_by_mars": False,
         "manglik_by_rahuketu": False,
         "manglik_by_saturn": False,
@@ -612,7 +618,7 @@ def calculate_manglik_dosh(planet_positions):
     response["score"] = min(score, 100)  # Cap at 100%
 
     # Generate bot response
-    response["bot_response"] = f"You are {response['score']}% manglik."
+    response["Result"] = f"You are {response['score']}% manglik."
 
     # Return the response structure
     return response
@@ -2594,8 +2600,7 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
    
     # Calculate Sade Sati
     sade_sati_info = calculate_sade_sati(dob, tob, lat, lon)
-    
-    # Calculate current year
+     # Calculate the current year
     current_year = datetime.now().year
 
     # Extract the year of birth from the DOB
@@ -2609,18 +2614,14 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
 
     # Call the function with the required arguments
     yogini_dasha = generate_yogini_maha_dasha(start_year, end_year)
-    
     # Calculate Ascendant
     ascendant = calculate_ascendant(dob, tob, lat, lon)
-    
     # Maanglik Dosha
-    manglik_dosh = calculate_manglik_dosh(planetary_positions)
-    
-    # Dasha prediction
-    dasha_predictions = calculate_dasha_predictions(dob, tob, lat, lon)
-    
+    manglik_dosh = calculate_manglik_dosh(planet_positions)
+    #  dasha prediction
+    dasha_predictions=calculate_dasha_predictions(dob,tob,lat,lon)
     # Mangal-dosha Calculation
-    mangal_dosh_info = calculate_mangal_dosh(planetary_positions, dob)
+    mangal_dosh_info = calculate_mangal_dosh(planetary_positions,dob)
 
     # Prepare Nakshatra details
     nakshatra, nakshatra_index = calculate_nakshatra(ascendant)
@@ -2658,46 +2659,76 @@ def check_horoscope(name, dob, tob, lat, lon, tz):
             "description": planet_description
         }
         horoscope_planet_details.append(planet_details)
-
-    # Prepare the final result
-    return {
-        "name": name,
-        "lat": lat,
-        "lon": lon,
-        "dob": dob,
-        "horoscope": {
-            "planetary_positions": planetary_positions,
-            "horoscope_planet_details": horoscope_planet_details,
-            "lagna": lagna,
-            "lagna_rasi_number": lagna_rasi_number,
-            "lucky_number": lucky_number,
-            "lucky_traits": lucky_traits,
-            "destiny_number": destiny_number,
-            "destiny_traits": destiny_traits,
-            "panchang": panchang_info,
-            "dasha_current_mahadasha": maha_dasha_info, 
-            "dasha-yogini-dasha-main": yogini_dasha,
-            "Mangal-dosh": mangal_dosh_info,
-            "extended_horoscope_find-moon-sign": {
-                "moon_sign": moon_sign,
-                "prediction": moon_prediction
-            },
-            "extended_horoscope_find-sun-sign": {
-                "sun_sign": sun_sign,
-                "prediction": sun_prediction
-            },
-            "pitra_dosh": pitra_dosh_info,
-            "sade_sati_info": sade_sati_info,
-            "Papa-samaya": calculate_papa_samaya(planetary_positions),
-            "Maanglik-Dosh": manglik_dosh,
-            "extended-horoscope_friendships": extended_horoscope_friendship,
-            "extended_horoscope_kp_houses": {
-                "houses": houses_data,
-                "planets": planets_data
-            }
-        }
+    # Fetch Dasha periods dynamically
+    dasha_periods = get_dasha_durations(nakshatra_index)
+   
+    # Plot the KP houses chart and Lagna chart
+    plot_kp_houses(planetary_positions, lagna)
+    
+    
+    # Plot the Ashtakavarga, Rashi, and Navamsa charts
+   
+    plot_lagna_chart(planetary_positions, lagna)
+    plot_rashi_chart(planetary_positions)
+    plot_ashtakavarga_chart(planet_positions)
+    # Calculate current Mahadasha details
+    current_mahadasha_full = calculate_current_mahadasha_full(dob, tob, lat, lon)
+    # Combine Dasha info into a single structure
+    dasha_order_info = calculate_dasha_order(dob, tob, lat, lon)
+    dasha_periods=get_dasha_durations(nakshatra_index)
+    planet=planet
+    # Combine Dasha info into a single structure
+    dasha_mahadasha_current = {
+        "Mahadasha": maha_dasha_info,
+        "Shookshamahadasha": calculate_shookshamahadasha(dob, tob, lat, lon),
+        "Antardasha": calculate_antardasha(dob, tob, lat, lon),
+        "Pranadasha": calculate_pranadasha(dob, tob, lat, lon),
+        "Paryantardasha": calculate_paryantardasha(datetime.strptime(dob, "%d/%m/%Y"), planet, dasha_periods.get(planet, 0)), 
+        "order_names": dasha_order_info["dasha_names"],  # Add order names
+        "order_of_dasha": dasha_order_info["dasha_orders"] 
     }
 
+    # Prepare current Mahadasha full info separately
+    dasha_mahadasha_current_full = current_mahadasha_full
+   
+
+
+    return {
+    "name": name,
+    "lat": lat,
+    "lon": lon,
+    "dob": dob,
+    "horoscope": {
+        "planetary_positions": planetary_positions,
+        "horoscope_planet_details": horoscope_planet_details,
+        "lagna": lagna,
+        "lagna_rasi_number": lagna_rasi_number,
+        "lucky_number": lucky_number,
+        "lucky_traits": lucky_traits,
+        "destiny_number": destiny_number,
+        "destiny_traits": destiny_traits,
+        "panchang": panchang_info,
+        "dasha_current_mahadasha": dasha_mahadasha_current, 
+        "dasha_mahadasha_current_full": dasha_mahadasha_current_full, 
+        "dasha-char-dasha-full": dasha_predictions,
+        "dasha-yogini-dasha-main": yogini_dasha,
+        "Mangal-dosh": mangal_dosh_info,  
+        "extended_horoscope_find-moon-sign": {
+            "moon_sign": moon_sign,
+            "prediction": moon_prediction
+        },
+        "extended_horoscope_find-sun-sign": {
+            "sun_sign": sun_sign,
+            "prediction": sun_prediction
+        },
+        "pitra_dosh": pitra_dosh_info,
+        "sade_sati_info": sade_sati_info,
+        "Papa-samaya": calculate_papa_samaya(planetary_positions),
+        "Maanglik-Dosh": manglik_dosh,
+        "extended-horoscope_friendships": extended_horoscope_friendship,
+        "extended_horoscope_kp_houses": extended_horoscope_kp_houses
+    }
+}
 
 def format_horoscope_for_web(horoscope_result):
     # Table for planetary positions
@@ -2824,10 +2855,7 @@ def format_horoscope_for_web(horoscope_result):
         <tr><td>Presence</td><td>{horoscope_result['horoscope']['Maanglik-Dosh'].get('is_maanglik', 'N/A')}</td></tr>
         <tr><td>Effects</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('effects', []))}</td></tr>
         <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('remedies', []))}</td></tr>
-    </table>
-    
-   
-    
+    </table> 
     """
 
     return results_table
