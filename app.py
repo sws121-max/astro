@@ -2825,24 +2825,7 @@ def format_horoscope_for_web(horoscope_result):
         <tr><td>Effects</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('effects', []))}</td></tr>
         <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('remedies', []))}</td></tr>
     </table>
-    
-    <h3>Dasha Mahadasha Current Full</h3>
-    <table border='1'>
-        <tr><th>Type</th><th>Description</th></tr>
-        <tr>
-            <td>Dasha Mahadasha Current Full</td>
-            <td>{horoscope_result['horoscope']['dasha_mahadasha_current_full']}</td>
-        </tr>
-    </table>
 
-    <h3>Dasha Char Dasha Full</h3>
-    <table border='1'>
-        <tr><th>Type</th><th>Description</th></tr>
-        <tr>
-            <td>Dasha Char Dasha Full</td>
-            <td>{horoscope_result['horoscope']['dasha-char-dasha-full']}</td>
-        </tr>
-    </table>
     """
 
     return results_table
