@@ -1,6 +1,4 @@
 import requests
-import firebase_admin
-from firebase_admin import credentials, firestore
 import re
 import json
 from flask import Flask, render_template, request, send_from_directory
@@ -16,10 +14,6 @@ from astropy.time import Time
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("C://Users/saura/OneDrive/Desktop/chat-astro/hello1.json")  
-firebase_admin.initialize_app(cred)
-db = firestore.client()
 
 # Predefined data for country, state, place, and coordinates
 place_coordinates = {
