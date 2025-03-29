@@ -2780,6 +2780,87 @@ def format_horoscope_for_web(horoscope_result):
         <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['sade_sati_info']['remedies'])}</td></tr>
     </table>
 
+    def format_horoscope_for_web(horoscope_result):
+    # Table for planetary positions
+    planet_table = "<table border='1'><tr><th>Planet</th><th>Position (Degrees)</th><th>Description</th></tr>"
+    for planet in horoscope_result['horoscope']['horoscope_planet_details']:
+        planet_table += f"<tr><td>{planet['full_name']}</td><td>{planet['position']}</td><td>{planet['description']}</td></tr>"
+    planet_table += "</table>"
+
+    # Check if moon sign and prediction exist
+    moon_sign = horoscope_result['horoscope'].get('extended_horoscope_find-moon-sign', {}).get('moon_sign', 'N/A')
+    moon_prediction = horoscope_result['horoscope'].get('extended_horoscope_find-moon-sign', {}).get('prediction', 'No prediction available.')
+
+    # Check if sun sign and prediction exist
+    sun_sign = horoscope_result['horoscope'].get('extended_horoscope_find-sun-sign', {}).get('sun_sign', 'N/A')
+    sun_prediction = horoscope_result['horoscope'].get('extended_horoscope_find-sun-sign', {}).get('prediction', 'No prediction available.')
+
+    # Prepare the main results table
+    results_table = f"""
+    <h2>Horoscope for {horoscope_result['name']}</h2>
+    <table border='1'>
+        <tr><th>Name</th><td>{horoscope_result['name']}</td></tr>
+        <tr><th>Date of Birth</th><td>{horoscope_result['dob']}</td></tr>
+        <tr><th>Latitude</th><td>{horoscope_result['lat']}</td></tr>
+        <tr><th>Longitude</th><td>{horoscope_result['lon']}</td></tr>
+        <tr><th>Lagna</th><td>{horoscope_result['horoscope']['lagna']}</td></tr>
+        <tr><th>Lagna Rasi Number</th><td>{horoscope_result['horoscope']['lagna_rasi_number']}</td></tr>
+        <tr><th>Lucky Number</th><td>{horoscope_result['horoscope']['lucky_number']} ({horoscope_result['horoscope']['lucky_traits']})</td></tr>
+        <tr><th>Destiny Number</th><td>{horoscope_result['horoscope']['destiny_number']} ({horoscope_result['horoscope']['destiny_traits']})</td></tr>
+        <tr><th>Moon Sign</th><td>{moon_sign}</td></tr>
+        <tr><th>Sun Sign</th><td>{sun_sign}</td></tr>
+    </table>
+    
+    <h3>Planetary Positions</h3>
+    {planet_table}
+    
+    <h3>Moon Sign Prediction</h3>
+    <table border='1'>
+        <tr><th>Detail</th><th>Description</th></tr>
+        <tr>
+            <td>Moon Sign</td>
+            <td>{moon_sign}</td>
+        </tr>
+        <tr>
+            <td>Prediction</td>
+            <td>{moon_prediction}</td>
+        </tr>
+    </table>
+
+    <h3>Sun Sign Prediction</h3>
+    <table border='1'>
+        <tr><th>Detail</th><th>Description</th></tr>
+        <tr>
+            <td>Sun Sign</td>
+            <td>{sun_sign}</td>
+        </tr>
+        <tr>
+            <td>Prediction</td>
+            <td>{sun_prediction}</td>
+        </tr>
+    </table>
+    
+    <h3>Pitra Dosh</h3>
+    <table border='1'>
+        <tr><th>Detail</th><th>Description</th></tr>
+        <tr><td>Presence</td><td>{horoscope_result['horoscope']['pitra_dosh']['dosha_pitra-dosh']['is_dosha_present']}</td></tr>
+        <tr><td>Bot Response</td><td>{horoscope_result['horoscope']['pitra_dosh']['dosha_pitra-dosh']['bot_response']}</td></tr>
+        <tr><td>Effects</td><td>{', '.join(horoscope_result['horoscope']['pitra_dosh']['dosha_pitra-dosh']['effects'])}</td></tr>
+        <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['pitra_dosh']['dosha_pitra-dosh']['remedies'])}</td></tr>
+    </table>
+    
+    <h3>Sade Sati Info</h3>
+    <table border='1'>
+        <tr><th>Detail</th><th>Description</th></tr>
+        <tr><td>In Sade Sati</td><td>{horoscope_result['horoscope']['sade_sati_info']['is_in_sade_sati']}</td></tr>
+        <tr><td>Saturn Retrograde</td><td>{horoscope_result['horoscope']['sade_sati_info']['saturn_retrograde']}</td></tr>
+        <tr><td>Shani Period Type</td><td>{horoscope_result['horoscope']['sade_sati_info']['shani_period_type']}</td></tr>
+        <tr><td>Age</td><td>{horoscope_result['horoscope']['sade_sati_info']['age']}</td></tr>
+        <tr><td>Date Considered</td><td>{horoscope_result['horoscope']['sade_sati_info']['date_considered']}</td></tr>
+        <tr><td>Description</td><td>{horoscope_result['horoscope']['sade_sati_info']['description']}</td></tr>
+        <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['sade_sati_info']['remedies'])}</td></tr>
+    </table>
+
     <h3>Current Mahadasha</h3>
     <table border='1'>
         <tr><th>Types Of Dasha</th><th>Description</th></tr>
@@ -2789,6 +2870,22 @@ def format_horoscope_for_web(horoscope_result):
         <tr><td>Pranadasha</td><td>{horoscope_result['horoscope']['dasha_current_mahadasha'].get('Pranadasha', 'N/A')}</td></tr>
         <tr><td>Paryantardasha</td><td>{horoscope_result['horoscope']['dasha_current_mahadasha'].get('Paryantardasha', 'N/A')}</td></tr>
     </table>
+    
+    <h3>Dasha Mahadasha Current Full</h3>
+    <table border='1'>
+        <tr><th>Type</th><th>Start Date</th><th>End Date</th></tr>
+        {''.join(f"<tr><td>{dasha['type']}</td><td>{dasha['start']}</td><td>{dasha['end']}</td></tr>" for dasha in horoscope_result['horoscope']['dasha_mahadasha_current_full'])}
+    </table>
+
+    <h3>Dasha Char Dasha Full</h3>
+    <table border='1'>
+        <tr><th>Dasha</th><th>Start Year</th><th>End Year</th><th>Prediction</th></tr>
+        {''.join(f"<tr><td>{dasha['dasha']}</td><td>{dasha['dasha_start_year']}</td><td>{dasha['dasha_end_year']}</td><td>{dasha['prediction']}</td></tr>" for dasha in horoscope_result['horoscope']['dasha-char-dasha-full'])}
+    </table>
+    """
+
+    return results_table
+
     
     <h3>Panchang</h3>
     <table border='1'>
