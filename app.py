@@ -2886,47 +2886,6 @@ def format_horoscope_for_web(horoscope_result):
 
     return results_table
 
-    
-    <h3>Panchang</h3>
-    <table border='1'>
-        <tr><th>Detail</th><th>Description</th></tr>
-        <tr><td>Day</td><td>{horoscope_result['horoscope']['panchang'].get('day', 'N/A')}</td></tr>
-        <tr><td>Nakshatra</td><td>{horoscope_result['horoscope']['panchang'].get('nakshatra', 'N/A')}</td></tr>
-        <tr><td>Rasi</td><td>{horoscope_result['horoscope']['panchang'].get('rasi', 'N/A')}</td></tr>
-        <tr><td>Tatva</td><td>{horoscope_result['horoscope']['panchang'].get('tatva', 'N/A')}</td></tr>
-        <tr><td>Tithi</td><td>{horoscope_result['horoscope']['panchang'].get('tithi', 'N/A')}</td></tr>
-        <tr><td>Lucky Colors</td><td>{horoscope_result['horoscope']['panchang'].get('lucky_colors', 'N/A')}</td></tr>
-        <tr><td>Lucky Gem</td><td>{horoscope_result['horoscope']['panchang'].get('lucky_gem', 'N/A')}</td></tr>
-        <tr><td>Lucky Letters</td><td>{horoscope_result['horoscope']['panchang'].get('lucky_letters', 'N/A')}</td></tr>
-        <tr><td>Lucky Name Start</td><td>{horoscope_result['horoscope']['panchang'].get('lucky_name_start', 'N/A')}</td></tr>
-        <tr><td>Lucky Number</td><td>{horoscope_result['horoscope']['panchang'].get('lucky_num', 'N/A')}</td></tr>
-        <tr><td>Nakshatra Pada</td><td>{horoscope_result['horoscope']['panchang'].get('nakshatra_pada', 'N/A')}</td></tr>
-        <tr><td>Day Lord</td><td>{horoscope_result['horoscope']['panchang'].get('day_lord', 'N/A')}</td></tr>
-        <tr><td>Hora Lord</td><td>{horoscope_result['horoscope']['panchang'].get('hora_lord', 'N/A')}</td></tr>
-        <tr><td>Karana</td><td>{horoscope_result['horoscope']['panchang'].get('karana', 'N/A')}</td></tr>
-        <tr><td>Sunrise at Birth</td><td>{horoscope_result['horoscope']['panchang'].get('sunrise_at_birth', 'N/A')}</td></tr>
-        <tr><td>Sunset at Birth</td><td>{horoscope_result['horoscope']['panchang'].get('sunset_at_birth', 'N/A')}</td></tr>
-        <tr><td>Yoga</td><td>{horoscope_result['horoscope']['panchang'].get('yoga', 'N/A')}</td></tr>
-    </table>
-    
-    <h3>Papa Samaya</h3>
-    <table border='1'>
-        <tr><th>Detail</th><th>Value</th></tr>
-        {''.join(f"<tr><td>{key}</td><td>{value}</td></tr>" for key, value in horoscope_result['horoscope']['Papa-samaya'].items())}
-    </table>
-    
-    <h3>Maanglik Dosh</h3>
-    <table border='1'>
-        <tr><th>Detail</th><th>Description</th></tr>
-        <tr><td>Presence</td><td>{horoscope_result['horoscope']['Maanglik-Dosh'].get('is_maanglik', 'N/A')}</td></tr>
-        <tr><td>Effects</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('effects', []))}</td></tr>
-        <tr><td>Remedies</td><td>{', '.join(horoscope_result['horoscope']['Maanglik-Dosh'].get('remedies', []))}</td></tr>
-    </table>
-
-    """
-
-    return results_table
-
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
